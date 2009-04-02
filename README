@@ -1,0 +1,6 @@
+The SQL Server 2 Growl bridge is a tool to send notifications from SQL Server to Growl. 
+It consists of SQL Server code (a queue and two stored procedures) and a C# NT Service 
+to pickup the notifications from the queue. The C# service will forward the notification 
+Growl.
+
+Copyright 2009 (c) Daniel Knippers
