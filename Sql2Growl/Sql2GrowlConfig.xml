@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Sql2Growl>
+   <LogLevel>Debug</LogLevel>
+   <ConnectString>Server=localhost\SQLEXPRESS,1219;User ID=GrowlUser;Password=LPHgeLAaC6YoE1gUfcl9IPZV;Connection Timeout=60</ConnectString>
+   <NotificationProcedure>Growl.spGetNextNotification</NotificationProcedure>
+   <QueryExecuteIntervalSec>60</QueryExecuteIntervalSec>
+</Sql2Growl>

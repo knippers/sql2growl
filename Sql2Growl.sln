@@ -1,0 +1,41 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sql2Growl", "Sql2Growl\Sql2Growl.csproj", "{504255B7-8F00-4A2A-828E-5351C3EE0815}"
+EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup", "Setup\Setup.vdproj", "{9752FF49-6F16-4BD3-A988-921F4AE24FAA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sql", "Sql", "{454572DC-A179-4D4C-96D6-EE8CA7B19656}"
+	ProjectSection(SolutionItems) = preProject
+		Sql\GrowlNotification.sql = Sql\GrowlNotification.sql
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Icons", "Icons", "{1215FC2E-49B4-4414-BA01-CCED0FE9229B}"
+	ProjectSection(SolutionItems) = preProject
+		Icons\Sql2GrowlDefault.png = Icons\Sql2GrowlDefault.png
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Libraries", "Libraries", "{3F4A6251-0E53-4A06-A3E6-E4954E84E769}"
+	ProjectSection(SolutionItems) = preProject
+		Libraries\Growl.Connector.dll = Libraries\Growl.Connector.dll
+		Libraries\Growl.CoreLibrary.dll = Libraries\Growl.CoreLibrary.dll
+		Libraries\log4net.dll = Libraries\log4net.dll
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{504255B7-8F00-4A2A-828E-5351C3EE0815}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{504255B7-8F00-4A2A-828E-5351C3EE0815}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{504255B7-8F00-4A2A-828E-5351C3EE0815}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{504255B7-8F00-4A2A-828E-5351C3EE0815}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9752FF49-6F16-4BD3-A988-921F4AE24FAA}.Debug|Any CPU.ActiveCfg = Debug
+		{9752FF49-6F16-4BD3-A988-921F4AE24FAA}.Release|Any CPU.ActiveCfg = Release
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
