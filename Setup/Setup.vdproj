@@ -15,6 +15,12 @@
     {
         "Entry"
         {
+        "MsmKey" = "8:_2284A2E5294749BB990C89149A7E4AE7"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_63A385206F8741F39171530E9CBD78D1"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -220,6 +226,26 @@
         }
         "File"
         {
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_2284A2E5294749BB990C89149A7E4AE7"
+            {
+            "SourcePath" = "8:..\\Sql\\GrowlNotification.sql"
+            "TargetName" = "8:GrowlNotification.sql"
+            "Tag" = "8:"
+            "Folder" = "8:_4AEAB5B1F20E4177B86FA21E060A6770"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
             "{9F6F8455-1EF1-4B85-886A-4223BCC8E7F7}:_6683BFF0608513B0B96A8766D672C134"
             {
             "AssemblyRegister" = "3:1"
@@ -371,6 +397,17 @@
             "Property" = "8:TARGETDIR"
                 "Folders"
                 {
+                    "{9EF0B969-E518-4E46-987F-47570745A589}:_4AEAB5B1F20E4177B86FA21E060A6770"
+                    {
+                    "Name" = "8:Sql"
+                    "AlwaysCreate" = "11:FALSE"
+                    "Condition" = "8:"
+                    "Transitive" = "11:FALSE"
+                    "Property" = "8:_925C94552C724850A506F2237F4EBCCE"
+                        "Folders"
+                        {
+                        }
+                    }
                     "{9EF0B969-E518-4E46-987F-47570745A589}:_F628D375A1EE4A65BB05CA9F96CA1553"
                     {
                     "Name" = "8:Icons"
@@ -401,7 +438,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:Sql2Growl"
         "ProductCode" = "8:{F0E8D293-6B8C-4D52-AEB6-004A7F3BA266}"
-        "PackageCode" = "8:{FFEFCBF6-F2F8-4769-8996-6FD63BB1F501}"
+        "PackageCode" = "8:{5E0568F0-A68C-481E-9086-FD88E3534E00}"
         "UpgradeCode" = "8:{76F9C220-8240-4779-8867-B72CBF9A9F2E}"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:FALSE"
