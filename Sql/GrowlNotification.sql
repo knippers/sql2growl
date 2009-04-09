@@ -89,6 +89,7 @@ GO
 -- the Sql2Growl service to flush all objects in cache and start over
 --
 CREATE PROCEDURE [Growl].[spQueueNotification]
+(
    @Application NVARCHAR(100),
    @Type NVARCHAR(100),
    @Title NVARCHAR(200),
@@ -98,6 +99,8 @@ CREATE PROCEDURE [Growl].[spQueueNotification]
    @Host VARCHAR(100) = NULL,
    @Port INT = 23053,
    @ClearCachedObjects BIT = 0
+)
+WITH EXECUTE AS OWNER
 AS
    DECLARE @ConversationId UNIQUEIDENTIFIER;
    DECLARE @Xml XML;
@@ -144,7 +147,10 @@ GO
 -- ALTER QUEUE Growl.NotificationQueue WITH STATUS = ON
 --
 CREATE PROCEDURE [Growl].[spGetNextNotification]
+(
    @TimeoutSec INT = 60
+)
+WITH EXECUTE AS OWNER
 AS
    SET NOCOUNT ON
    DECLARE @Timeout INT

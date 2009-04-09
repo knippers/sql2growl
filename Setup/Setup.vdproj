@@ -437,12 +437,12 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:Sql2Growl"
-        "ProductCode" = "8:{F0E8D293-6B8C-4D52-AEB6-004A7F3BA266}"
-        "PackageCode" = "8:{5E0568F0-A68C-481E-9086-FD88E3534E00}"
-        "UpgradeCode" = "8:{76F9C220-8240-4779-8867-B72CBF9A9F2E}"
+        "ProductCode" = "8:{ABFF9D9E-2584-44D3-964A-C86FD8EAAADF}"
+        "PackageCode" = "8:{087550A0-3722-483B-9D92-0B12F1BDECF7}"
+        "UpgradeCode" = "8:{43F92338-222F-4EFE-AC75-E9692CF38E71}"
         "RestartWWWService" = "11:FALSE"
-        "RemovePreviousVersions" = "11:FALSE"
-        "DetectNewerInstalledVersion" = "11:TRUE"
+        "RemovePreviousVersions" = "11:TRUE"
+        "DetectNewerInstalledVersion" = "11:FALSE"
         "InstallAllUsers" = "11:TRUE"
         "ProductVersion" = "8:1.0.0"
         "Manufacturer" = "8:Daniel Knippers"
@@ -1214,7 +1214,7 @@
         {
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_63A385206F8741F39171530E9CBD78D1"
             {
-            "SourcePath" = "8:..\\Sql2Growl\\obj\\Debug\\Sql2Growl.exe"
+            "SourcePath" = "8:..\\Sql2Growl\\obj\\Release\\Sql2Growl.exe"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_D4E4E54BC484465DA5E33AC5ED216EA5"

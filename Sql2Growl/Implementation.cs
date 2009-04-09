@@ -161,21 +161,25 @@ namespace Sql2Growl
          }
          catch (SqlException sex)
          {
-            if (IsDeadlockError(sex) == false)
+            Rollback(transaction);
+            
+            if (IsDeadlockError(sex) == true)
             {
-               Rollback(transaction);
-               throw sex;
+               if (m_logger.IsDebugEnabled)
+               {
+                  m_logger.DebugFormat("{0} procedure call was picked to be the victim of a deadlock",
+                     m_getNextRequestSp.CommandText);
+               }
+
+               return null; // as if no notification was returned
             }
 
-            // Transaction is already rolledback by the database, so no need to do it here
-
-            if (m_logger.IsDebugEnabled)
+            if (sex.ErrorCode == 2812) // object not found (but code needs to be checked)
             {
-               m_logger.DebugFormat("{0} procedure call was picked to be the victim of a deadlock",
-                  m_getNextRequestSp.CommandText);
+               m_getNextRequestSp = null;
             }
 
-            return null; // as if no notification was returned
+            throw sex;
          }
          catch (Exception)
          {
