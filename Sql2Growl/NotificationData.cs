@@ -49,7 +49,7 @@ namespace Sql2Growl
          if (node == null)
             return string.Empty;
 
-         return node.InnerText;
+         return node.InnerText == null ? string.Empty : node.InnerText;
       }
 
       public void SetFromXml(object p_data)
@@ -68,8 +68,8 @@ namespace Sql2Growl
 
          Application = GetValue( xmlDoc, "/Growl/Application" );
          Type = GetValue( xmlDoc, "/Growl/Type" );
-         Title = GetValue( xmlDoc, "/Growl/Title" );
-         Message = GetValue( xmlDoc, "/Growl/Message" );
+         Title = GetValue( xmlDoc, "/Growl/Title" ).Replace( @"\n", "\n" );
+         Message = GetValue( xmlDoc, "/Growl/Message" ).Replace( @"\n", "\n" );
          Icon = GetValue(xmlDoc, "/Growl/Icon");
          Password = GetValue( xmlDoc, "/Growl/Password" );
          Host = GetValue( xmlDoc, "/Growl/Host" );

@@ -272,7 +272,7 @@ namespace Sql2Growl
             connector.Connector.Register( application, application.Types );
 
          connector.Connector.Notify( new Notification(p_notification.Application, p_notification.TypeKey,
-            "ID", p_notification.Title, p_notification.Message) );
+            "ID", p_notification.Title, p_notification.Message ) );
 
          m_lastNotification = p_notification;
       }
