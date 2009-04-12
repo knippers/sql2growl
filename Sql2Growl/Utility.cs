@@ -228,5 +228,11 @@ namespace Sql2Growl
 
          File.Move(p_from, p_to);
       }
+
+      public static void Sleep(int p_millisecondsTimeout)
+      {
+         try { Thread.Sleep(p_millisecondsTimeout); }
+         catch { /* ignore */ }
+      }
    }
 }

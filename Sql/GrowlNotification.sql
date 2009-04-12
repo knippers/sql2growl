@@ -14,10 +14,19 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 IF NOT EXISTS( SELECT * FROM sys.databases WHERE is_broker_enabled = 1 AND name = 'YOUR_DATABASE' )
+BEGIN
+   -- Usually if the execution of this script seems to hang it is because of 
+   -- the Alter Database, if so cancel the execution and disconnect all connections
+   -- to the database except for this qeury window and retry
+   -- 
    ALTER DATABASE [YOUR_DATABASE] SET ENABLE_BROKER;
+END
 GO
 IF USER_ID('GrowlUser') IS NULL
 BEGIN
+   -- Change the password if you like but then also make sure
+   -- to set this password during the Sql2Growl service setup 
+   -- 
    CREATE LOGIN [GrowlUser] WITH PASSWORD='LPHgeLAaC6YoE1gUfcl9IPZV', 
       DEFAULT_DATABASE=[YOUR_DATABASE], DEFAULT_LANGUAGE=[us_english], 
       CHECK_EXPIRATION=OFF, CHECK_POLICY=OFF
@@ -77,6 +86,29 @@ GO
 --
 -- Create procedures
 --
+IF OBJECT_ID('Growl.spReRaiseException') IS NOT NULL
+   DROP PROCEDURE [Growl].[spReRaiseException];
+GO
+CREATE PROCEDURE [Growl].[spReRaiseException]
+WITH EXECUTE AS OWNER
+AS
+   SET NOCOUNT ON
+   DECLARE @ErrorMessage NVARCHAR(4000);
+   DECLARE @ErrorSeverity INT;
+   DECLARE @ErrorState INT;
+BEGIN
+   SELECT @ErrorMessage = ERROR_MESSAGE(),
+          @ErrorSeverity = ERROR_SEVERITY(),
+          @ErrorState = ERROR_STATE();
+
+   RAISERROR
+   (
+      @ErrorMessage,
+      @ErrorSeverity,
+      @ErrorState
+   );
+END
+GO
 IF OBJECT_ID('Growl.spQueueNotification') IS NOT NULL
    DROP PROCEDURE [Growl].[spQueueNotification];
 GO
@@ -105,6 +137,15 @@ AS
    DECLARE @ConversationId UNIQUEIDENTIFIER;
    DECLARE @Xml XML;
 BEGIN
+
+   IF EXISTS( SELECT name
+			    FROM sys.service_queues
+			   WHERE name = 'NotificationQueue' AND
+					 is_receive_enabled = 0 )
+   BEGIN
+      RAISERROR( 'The notification queue is disabled (usually duo to rollbacks on the client)', 1, 1);
+   END
+
    BEGIN DIALOG CONVERSATION @ConversationId
         FROM SERVICE [//Growl/NotificationService]
           TO SERVICE '//Growl/NotificationService'
@@ -160,29 +201,44 @@ AS
    DECLARE @StartTime DATETIME;
 BEGIN
 
+   IF EXISTS( SELECT name
+			    FROM sys.service_queues
+			   WHERE name = 'NotificationQueue' AND
+					 is_receive_enabled = 0 )
+   BEGIN
+      RAISERROR( 'The notification queue is disabled', 11, 1);
+      RETURN 1;
+   END
+
    SET @Timeout = @TimeoutSec * 1000;
    SET @StartTime = GETDATE();
 
    WHILE @Timeout >= 0
    BEGIN
-      WAITFOR(
-         RECEIVE TOP(1) 
-                 @ConversationId = conversation_handle,
-                 @MsgType = message_type_name, 
-                 @Xml = message_body
-            FROM Growl.NotificationQueue
-      ), TIMEOUT @Timeout;
+      BEGIN TRY
+		  WAITFOR(
+			 RECEIVE TOP(1) 
+					 @ConversationId = conversation_handle,
+					 @MsgType = message_type_name, 
+					 @Xml = message_body
+				FROM Growl.NotificationQueue
+		  ), TIMEOUT @Timeout;
 
-      -- if received message is Notification Message break out while loop
-      --    
-      IF @MsgType = '//Growl/NotificationMessage'
-      BEGIN
-         BREAK;
-      END;
+		  -- if received message is Notification Message break out while loop
+		  --    
+		  IF @MsgType = '//Growl/NotificationMessage'
+		  BEGIN
+			 BREAK;
+		  END;
 
-      -- extract the time we already waited from the waitfor timeout
-      -- 
-      SET @Timeout = (@TimeoutSec*1000) - DATEDIFF( MILLISECOND, @StartTime, GETDATE() );
+		  -- extract the time we already waited from the waitfor timeout
+		  -- 
+		  SET @Timeout = (@TimeoutSec*1000) - DATEDIFF( MILLISECOND, @StartTime, GETDATE() );
+      END TRY
+      BEGIN CATCH
+         EXEC [Growl].[spReRaiseException];
+         RETURN 2;
+      END CATCH
    END;
 
    IF @Xml IS NOT NULL

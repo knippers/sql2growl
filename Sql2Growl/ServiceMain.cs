@@ -121,7 +121,7 @@ namespace Sql2Growl
             {
                try
                {
-                  Thread.Sleep(10*1000);
+                  Utility.Sleep(10 * 1000);
 
                   if (m_logger != null && m_logger.IsInfoEnabled == true)
                      m_logger.Info("Forced server stop");
@@ -154,8 +154,7 @@ namespace Sql2Growl
             // 
             while (done == false)
             {
-               try { Thread.Sleep(50); }
-               catch { /* ignore */ }
+               Utility.Sleep(50);
             }
          }
          catch (Exception ex)
@@ -330,8 +329,7 @@ namespace Sql2Growl
          {
             try
             {
-               try { Thread.Sleep(100); }
-               catch { /* ignore */ }
+               Utility.Sleep(50);
                
                foreach (string logFile in Directory.GetFiles(
                   Utility.ApplicationPath, Utility.ApplicationName + ".log*"))

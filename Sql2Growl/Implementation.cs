@@ -9,6 +9,14 @@ using System.IO;
 
 namespace Sql2Growl
 {
+   internal enum CommonSqlErrors
+   {
+      Unknown = 0,
+      Deadlock = 1,
+      ObjectNotFound = 2,
+      UserError = 4
+   }
+   
    public class Implementation
    {
       private static readonly object m_locker = new object();
@@ -22,12 +30,14 @@ namespace Sql2Growl
       private int m_queryExecuteIntervalSec = 60;
 
       private Thread m_notificationRequester;
-      private bool m_notificationRequesterStopped = false;
+      private bool m_notificationStopRequester = false;
 
       private Dictionary<string, Sql2GrowlConnector> m_growlConnectors = 
          new Dictionary<string, Sql2GrowlConnector>();
 
       private NotificationData m_lastNotification;
+
+      private int m_errorCount = 0;
 
       public Implementation(ServiceMain p_parent)
       {
@@ -39,6 +49,11 @@ namespace Sql2Growl
 
          SqlConnectionStringBuilder connectStr = new SqlConnectionStringBuilder();
          connectStr.ConnectionString = m_parent.Config.GetValue("ConnectString");
+
+         // Setting this to true is needed to be able to stop the service gracefully (instead 
+         // of killing it after x seconds when the spGetNextNotification is blocking)
+         // 
+         connectStr.AsynchronousProcessing = true;
 
          m_dbConnection = new SqlConnection( connectStr.ToString() );
 
@@ -72,15 +87,21 @@ namespace Sql2Growl
          }
       }
 
-      private bool IsDeadlockError(SqlException p_exception)
+      private CommonSqlErrors GetErrorCode(SqlException p_exception)
       {
          if (p_exception == null || p_exception.Errors == null)
-            return false;
+            return CommonSqlErrors.Unknown;
 
          if (p_exception.Errors.Count == 0)
-            return false;
+            return CommonSqlErrors.Unknown;
 
-         return p_exception.Errors[0].Number == 1205;
+         switch (p_exception.Errors[0].Number)
+         {
+            case 1205: return CommonSqlErrors.Deadlock;
+            case 2812: return CommonSqlErrors.ObjectNotFound;
+            case 50000: return CommonSqlErrors.UserError;
+            default: return CommonSqlErrors.Unknown;
+         }
       }
 
       private void Rollback(SqlTransaction p_transaction)
@@ -92,10 +113,14 @@ namespace Sql2Growl
          {
             p_transaction.Rollback();
          }
+         catch (ObjectDisposedException)
+         {
+            // Ignore this exception, it means that the p_transaction object is already disposed
+         }
          catch (InvalidOperationException ioex)
          {
             // A rollback will for example fail if the database already did the rollback
-            
+
             if (m_logger.IsDebugEnabled)
                m_logger.Debug("Rollback failed", ioex);
          }
@@ -159,11 +184,18 @@ namespace Sql2Growl
 
             return notification;
          }
+         catch (ThreadAbortException)
+         {
+            if (m_getNextRequestSp != null)
+               m_getNextRequestSp.Cancel();
+
+            throw;
+         }
          catch (SqlException sex)
          {
             Rollback(transaction);
-            
-            if (IsDeadlockError(sex) == true)
+
+            if ( GetErrorCode(sex) == CommonSqlErrors.Deadlock )
             {
                if (m_logger.IsDebugEnabled)
                {
@@ -174,8 +206,10 @@ namespace Sql2Growl
                return null; // as if no notification was returned
             }
 
-            if (sex.ErrorCode == 2812) // object not found (but code needs to be checked)
+            if ( GetErrorCode( sex ) == CommonSqlErrors.ObjectNotFound )
             {
+               // We need to reinitialize the procedure call
+               // 
                m_getNextRequestSp = null;
             }
 
@@ -266,7 +300,8 @@ namespace Sql2Growl
 
          Sql2GrowlApplication application = CheckApplication(p_notification);
 
-         // Everytime a new type is added we have to register the application again with the new type
+         // Every time a new type is added we have to register the application again with 
+         // the new type (and the previously registered types)
          // 
          if (application.AddType( p_notification.TypeKey, p_notification.Type ) == true )
             connector.Connector.Register( application, application.Types );
@@ -277,7 +312,7 @@ namespace Sql2Growl
          m_lastNotification = p_notification;
       }
 
-      void connector_ErrorResponse(Response response)
+      private void connector_ErrorResponse(Response response)
       {
          if (m_logger.IsInfoEnabled)
          {
@@ -301,7 +336,7 @@ namespace Sql2Growl
       {
          try
          {
-            while (m_notificationRequesterStopped == false)
+            while (m_notificationStopRequester == false)
             {
                try
                {
@@ -310,6 +345,11 @@ namespace Sql2Growl
                   CheckConnection();
 
                   NotificationData notification = GetNextNotification();
+
+                  // Reset the error counter
+                  // 
+                  m_errorCount = 0;
+
                   if (notification == null)
                   {
                      continue; // go ask again to the database if there is work
@@ -318,7 +358,7 @@ namespace Sql2Growl
                   Notify(notification);
 
                   if (m_logger.IsDebugEnabled)
-                     m_logger.DebugFormat( "Received notification: {0}", notification.ToString());
+                     m_logger.DebugFormat("Received notification: {0}", notification.ToString());
                }
                catch (ThreadAbortException)
                {
@@ -326,19 +366,36 @@ namespace Sql2Growl
                }
                catch (Exception ex)
                {
-                  m_logger.Warn("Poll error: " + ex.Message, ex);
+                  if (m_logger.IsWarnEnabled)
+                     m_logger.Warn("Poll error: " + ex.Message, ex);
 
-                  // If there is an database error go to sleep for 5 seconds
-                  // this is of course arbitrary and should work based on the kind
-                  // of error and maybe include some incremental time on subsequent errors
+                  if (m_errorCount < 12)
+                     m_errorCount++;
+
+                  // We don't know what happened here, but to be sure go to sleep for a while
+                  // before continueing
+                  // On subsequent errors increase the time to sleep
                   //
-                  try{ Thread.Sleep(5000); } catch{ /* ignore */ }
+                  #region Sleep
+                  
+                  // Don't simply go to sleep for x seconds, that would mean we cannot be interrupted
+                  // for x seconds, instead go into a loop of 1 second sleeps so we can get interrupted 
+                  // after max 1 second
+                  // 
+                  int sleepTime = 5000 * m_errorCount / 1000;
+                  while (m_notificationStopRequester == false && sleepTime > 0)
+                  {
+                     Utility.Sleep(1000);
+                     sleepTime--;
+                  }
+                  #endregion
                }
             }
          }
          catch (ThreadAbortException)
          {
-            m_logger.Debug("Requested to stop");
+            if (m_logger.IsDebugEnabled)
+               m_logger.Debug("Requested to stop");
          }
       }
 
@@ -353,12 +410,11 @@ namespace Sql2Growl
                if (m_logger.IsDebugEnabled)
                   m_logger.Debug("Starting...");
 
+               m_notificationStopRequester = false;
                m_notificationRequester.Start();
 
                if (m_logger.IsDebugEnabled)
                   m_logger.Debug("Started");
-
-               m_notificationRequesterStopped = false;
             }
          }
          catch (Exception ex)
@@ -376,6 +432,8 @@ namespace Sql2Growl
                if (m_logger.IsDebugEnabled)
                   m_logger.Debug("Stopping...");
 
+               m_notificationStopRequester = true;
+
                // we want to do a gracefull shutdown of the thread
                // 
                if (m_notificationRequester != null)
@@ -384,7 +442,7 @@ namespace Sql2Growl
                   while (m_notificationRequester.IsAlive == true || 
                      m_notificationRequester.ThreadState == ThreadState.WaitSleepJoin)
                   {
-                     Thread.Sleep(50);
+                     Utility.Sleep(50);
                   }
                }
 
@@ -395,8 +453,6 @@ namespace Sql2Growl
 
                if (m_logger.IsDebugEnabled)
                   m_logger.Debug("Stopped");
-
-               m_notificationRequesterStopped = true;
             }
          }
          catch (Exception ex)
