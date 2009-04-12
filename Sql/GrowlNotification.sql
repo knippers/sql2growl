@@ -2,8 +2,7 @@
 -- Script to create the SQL Server part of the objects for the Sql2Growl connector
 -- Copyright (c) 2009, Daniel Knippers (daniel@knippers.com)
 --
---
--- Setup part
+-- Last change: 20090411 (better exception handling)
 -- 
 -- NOTE!!! do not forget to change value for YOUR_DATABASE 
 --
@@ -143,7 +142,7 @@ BEGIN
 			   WHERE name = 'NotificationQueue' AND
 					 is_receive_enabled = 0 )
    BEGIN
-      RAISERROR( 'The notification queue is disabled (usually duo to rollbacks on the client)', 1, 1);
+      RAISERROR( 'The notification queue is disabled (usually duo to rollbacks on the client)', 11, 1);
    END
 
    BEGIN DIALOG CONVERSATION @ConversationId
