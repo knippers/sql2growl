@@ -320,10 +320,11 @@ namespace Sql2Growl
                response.ErrorCode, response.ErrorDescription, response.InResponseTo);
          }
 
-         if (m_lastNotification != null && response.ErrorCode == 401) // Application not registered
+         if (m_lastNotification != null && ( 
+            response.ErrorCode == 401 || response.ErrorCode == 402 ) ) // Application and/or type not registered
          {
             // The Sql2Growl service is designed to loop forever :) so if someone deletes our registered
-            // applications we want to register them again.
+            // applications and types we want to register them again.
 
             m_lastNotification.ClearCachedObjects = true;
             Notify(m_lastNotification);

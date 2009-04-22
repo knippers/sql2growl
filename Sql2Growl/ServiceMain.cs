@@ -295,9 +295,10 @@ namespace Sql2Growl
       public Sql2GrowlServiceInstaller()
       {
          Utility.SetExecutingAssembly(typeof(ServiceMain));
+      }
 
-         #region Setup
-
+      private void CreateInstaller()
+      {
          ServiceProcessInstaller spi = new ServiceProcessInstaller();
 
          if (Environment.CommandLine != null && Environment.CommandLine.IndexOf("/username") != -1)
@@ -316,34 +317,67 @@ namespace Sql2Growl
          si.StartType = ServiceStartMode.Automatic;
 
          Installers.AddRange(new Installer[] { spi, si });
-
-         #endregion
       }
 
-      #region OnAfterUninstall
-      protected override void OnAfterUninstall(IDictionary savedState)
+      public override void Install(IDictionary stateSaver)
       {
-         base.OnAfterUninstall(savedState);
-         
-         if (Context != null && Context.IsParameterTrue("delete") )
+         base.Install(stateSaver);
+
+         if ( Utility.IsServiceInstalled(Utility.ApplicationName + " Service") == true)
+            return;
+
+         CreateInstaller();
+      }
+
+      public override void Uninstall(IDictionary stateSaver)
+      {
+         base.Uninstall(stateSaver);
+
+         if (Context == null || Context.IsParameterTrue("delete") == false)
          {
+            System.Diagnostics.Trace.WriteLine("Context delete condition not set", "Sql2Growl");
+            return;
+         }
+
+         try
+         {
+            ServiceController service = new ServiceController(Utility.ApplicationName + " Service");
+
+            if (service != null && service.Status != ServiceControllerStatus.Stopped)
+               service.Stop();
+
+            // wait for 10 seconds for the service to stop 
+            //
+            service.WaitForStatus(ServiceControllerStatus.Stopped, new TimeSpan(0, 0, 10));
+
             try
             {
-               Utility.Sleep(50);
-               
                foreach (string logFile in Directory.GetFiles(
                   Utility.ApplicationPath, Utility.ApplicationName + ".log*"))
                {
                   File.Delete(logFile);
                }
+               System.Diagnostics.Trace.WriteLine("Logfiles deleted", "Sql2Growl");
             }
             catch (Exception ex)
             {
                System.Diagnostics.Trace.WriteLine("Logfile delete error: " + ex.Message, "Sql2Growl");
             }
          }
+         catch (InvalidOperationException ioex)
+         {
+            System.Diagnostics.Trace.WriteLine(string.Format("Failed to stop service '{0}': {1}",
+               Utility.ApplicationName + " Service", ioex.Message), "Sql2Growl");
+         }
+         catch (System.ServiceProcess.TimeoutException)
+         {
+            System.Diagnostics.Trace.WriteLine(string.Format(
+               "Failed to stop service '{0}' in 10 seconds",
+               Utility.ApplicationName + " Service"), "Sql2Growl");
+         }
+
+         CreateInstaller();
       }
-      #endregion
 
       #region OnAfterInstall
       protected override void OnAfterInstall(IDictionary savedState)
@@ -358,21 +392,26 @@ namespace Sql2Growl
             Configuration config = new Configuration();
             config.Load(Configuration.ConfigFile);
 
-            string connectStr = config.GetValue("ConnectString", string.Empty);
-            if (string.IsNullOrEmpty(connectStr) == false)
+            if (config.GetValue("AfterSetup", "False").Equals("False"))
             {
-               connectStr = "Server=" + Context.Parameters["server"] + ";User ID=" +
-                  Context.Parameters["username"] + ";Password=" + Context.Parameters["password"] +
-                  ";Connection Timeout=60";
+               string connectStr = config.GetValue("ConnectString", string.Empty);
+               if (string.IsNullOrEmpty(connectStr) == false)
+               {
+                  connectStr = "Server=" + Context.Parameters["server"] + ";User ID=" +
+                     Context.Parameters["username"] + ";Password=" + Context.Parameters["password"] +
+                     ";Connection Timeout=60";
 
-               System.Diagnostics.Trace.WriteLine("New connectstr: " + connectStr, "Sql2Growl");
+                  System.Diagnostics.Trace.WriteLine("New connectstr: " + connectStr, "Sql2Growl");
 
-               config.ConfigParameters["ConnectString"] = connectStr;
+                  config.ConfigParameters["ConnectString"] = connectStr;
 
-               config.Save(Path.ChangeExtension(Configuration.ConfigFile, ".tmp"));
+                  config.ConfigParameters["AfterSetup"] = "True";
 
-               Utility.MoveFile(Path.ChangeExtension(Configuration.ConfigFile, ".tmp"),
-                  Configuration.ConfigFile);
+                  config.Save(Path.ChangeExtension(Configuration.ConfigFile, ".tmp"));
+
+                  Utility.MoveFile(Path.ChangeExtension(Configuration.ConfigFile, ".tmp"),
+                     Configuration.ConfigFile);
+               }
             }
          }
          catch (Exception ex)
