@@ -295,10 +295,7 @@ namespace Sql2Growl
       public Sql2GrowlServiceInstaller()
       {
          Utility.SetExecutingAssembly(typeof(ServiceMain));
-      }
 
-      private void CreateInstaller()
-      {
          ServiceProcessInstaller spi = new ServiceProcessInstaller();
 
          if (Environment.CommandLine != null && Environment.CommandLine.IndexOf("/username") != -1)
@@ -321,12 +318,13 @@ namespace Sql2Growl
 
       public override void Install(IDictionary stateSaver)
       {
+         if (Utility.IsServiceInstalled(Utility.ApplicationName + " Service") == true)
+         {
+            System.Diagnostics.Trace.WriteLine("Service is already installed", "Sql2Growl");
+            //return;
+         }
+
          base.Install(stateSaver);
-
-         if ( Utility.IsServiceInstalled(Utility.ApplicationName + " Service") == true)
-            return;
-
-         CreateInstaller();
       }
 
       public override void Uninstall(IDictionary stateSaver)
@@ -349,20 +347,6 @@ namespace Sql2Growl
             // wait for 10 seconds for the service to stop 
             //
             service.WaitForStatus(ServiceControllerStatus.Stopped, new TimeSpan(0, 0, 10));
-
-            try
-            {
-               foreach (string logFile in Directory.GetFiles(
-                  Utility.ApplicationPath, Utility.ApplicationName + ".log*"))
-               {
-                  File.Delete(logFile);
-               }
-               System.Diagnostics.Trace.WriteLine("Logfiles deleted", "Sql2Growl");
-            }
-            catch (Exception ex)
-            {
-               System.Diagnostics.Trace.WriteLine("Logfile delete error: " + ex.Message, "Sql2Growl");
-            }
          }
          catch (InvalidOperationException ioex)
          {
@@ -376,7 +360,19 @@ namespace Sql2Growl
                Utility.ApplicationName + " Service"), "Sql2Growl");
          }
 
-         CreateInstaller();
+         try
+         {
+            foreach (string logFile in Directory.GetFiles(
+               Utility.ApplicationPath, Utility.ApplicationName + ".log*"))
+            {
+               File.Delete(logFile);
+            }
+            System.Diagnostics.Trace.WriteLine("Logfiles deleted", "Sql2Growl");
+         }
+         catch (Exception ex)
+         {
+            System.Diagnostics.Trace.WriteLine("Logfile delete error: " + ex.Message, "Sql2Growl");
+         }
       }
 
       #region OnAfterInstall
@@ -424,11 +420,20 @@ namespace Sql2Growl
       #region OnCommitted
       protected override void OnCommitted(IDictionary savedState)
       {
-         base.OnCommitted(savedState);
-         ServiceController service = new ServiceController(Utility.ApplicationName + " Service");
+         try
+         {
+            base.OnCommitted(savedState);
+         }
+         catch (Exception ex)
+         {
+            System.Diagnostics.Trace.WriteLine(string.Format(
+               "base.OnCommitted error: {0}",ex.Message, "Sql2Growl"));
+         }
 
          try
          {
+            ServiceController service = new ServiceController(Utility.ApplicationName + " Service");
+            
             if( service != null && service.Status != ServiceControllerStatus.Running )
                service.Start();
 
